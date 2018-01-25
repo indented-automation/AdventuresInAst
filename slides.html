@@ -111,7 +111,6 @@ Files can be parsed into AST using the ParseFile static method.
 Set-Content -Path script.ps1 -Value "Write-Host 'Hello world'"
 $tokens = @()
 $errors = @()
-# Remember that .NET methods need full paths, not PS-relative paths!
 [System.Management.Automation.Language.Parser]::ParseFile(
     (Get-Item script.ps1).FullName,
     [Ref]$tokens,
@@ -163,7 +162,7 @@ $script = "
 PSParser can tokenize a script.
 ```powershell
 $errors = @()
-[System.Management.Automation.PSParser]::Tokenize(
+$tokens = [System.Management.Automation.PSParser]::Tokenize(
     $script,
     [Ref]$errors
 )
@@ -224,6 +223,11 @@ Each node in the AST has a specific AST class type. The AST types are in the Sys
     $_.IsSubclassOf([System.Management.Automation.Language.Ast])
 }
 ```
+
+---
+
+# Finding the AST type name
+
 A tree can be explored by walking through the properties.
 ```powershell
 $scriptBlock = {
@@ -252,6 +256,8 @@ Find returns the first match. FindAll returns all matches. The methods are prese
 Both methods take the same arguments. A predicate and a boolean value.
 ```powershell
 {}.Ast.Find.OverloadDefinitions
+```
+```powershell
 {}.Ast.FindAll.OverloadDefinitions
 ```
 The predicate is a logic statement which tests the value of each node in the tree. An assertion about the state of a thing.
@@ -518,7 +524,7 @@ function MyRule {
     #>
 
     param (
-        [ScriptBlockAst]$someAst
+        [System.Management.Automation.Language.ScriptBlockAst]$someAst
     )
 }'
 
