@@ -46,6 +46,10 @@ $script = "
 "
 }
 { ## With PSParser
+$script = "
+   # This is a comment
+   Write-Host 'Hello world'
+"
 $errors = @()
 $tokens = [System.Management.Automation.PSParser]::Tokenize(
     $script,
@@ -54,6 +58,10 @@ $tokens = [System.Management.Automation.PSParser]::Tokenize(
 $tokens[1]
 }
 { ## With Language.Parser
+$script = "
+   # This is a comment
+   Write-Host 'Hello world'
+"
 $errors = @()
 $tokens = @()
 [System.Management.Automation.Language.Parser]::ParseInput(

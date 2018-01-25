@@ -161,6 +161,10 @@ $script = "
 
 PSParser can tokenize a script.
 ```powershell
+$script = "
+   # This is a comment
+   Write-Host 'Hello world'
+"
 $errors = @()
 $tokens = [System.Management.Automation.PSParser]::Tokenize(
     $script,
@@ -176,6 +180,10 @@ Tokens are of type System.Management.Automation.PSToken.
 
 Language.Parser can tokenize a script.
 ```powershell
+$script = "
+   # This is a comment
+   Write-Host 'Hello world'
+"
 $errors = @()
 $tokens = @()
 [System.Management.Automation.Language.Parser]::ParseInput(
