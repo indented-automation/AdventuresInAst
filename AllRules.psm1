@@ -1,3 +1,22 @@
+function StopUsingWriteHost {
+    <#
+    .DESCRIPTION
+        Do not use Write-Host.
+    #>
+
+    param (
+        [System.Management.Automation.Language.CommandAst]$someAst
+    )
+
+    if ($someAst.GetCommandName() -eq 'Write-Host') {
+        [Microsoft.Windows.Powershell.ScriptAnalyzer.Generic.DiagnosticRecord]@{
+            RuleName             = $myinvocation.InvocationName
+            Message              = 'Please do not use Write-Host'
+            Extent               = $someAst.Extent
+        }
+    }
+}
+
 function NoMoreTicks {
     <#
     .DESCRIPTION
