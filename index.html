@@ -27,9 +27,13 @@ A representation of the source code.
 
 "A tree representation of the abstract syntactic structure of source code written in a programming language. Each node denotes a construct occurring in the source code."
 
+---
+
 # What is Static Analysis
 
 The method of examining source code without execution.
+
+---
 
 # PSParser and Language.Parser
 
@@ -38,11 +42,15 @@ PowerShell providers two different classes for analysing source code.
  - PSParser was introduced with PowerShell 2.
  - Language.Parser (and AST in general) was introduced with PowerShell 3.
 
+---
+
 # AST includes
 
 All executed elements of the source code which are considered programming structures.
 
 Comments and white space are not included. End of line continuation characters (`) are not included.
+
+---
 
 # Accessing the AST
 
@@ -94,6 +102,8 @@ Get-Content script.ps1   # The mis-matched content of the file
 ```
 The file path does not need to exist.
 
+---
+
 # Getting at comments
 
 Comments are available by tokenizing a script.
@@ -127,6 +137,8 @@ $tokens[1]
 ```
 Tokens are of type System.Management.Automation.Language.Token. Position information found as properties of PSToken are part of the Extent property.
 
+---
+
 # Uses of tokenize
 
 Tokenize can be used to perform a syntax test.
@@ -146,6 +158,8 @@ $ast = [System.Management.Automation.Language.Parser]::ParseInput(
 )
 $errors
 ```
+
+---
 
 # AST types
 
@@ -170,6 +184,8 @@ In the snippet above, the following are true:
  - "'Hello world'" is a CommandExpressionAst containing a StringConstantExpressionAst
  - "Write-Host" is a CommandAst
 
+---
+
 # An AST can be searched
 
 Two methods are exposed to search an AST:
@@ -185,6 +201,8 @@ Both methods take the same arguments. A predicate and a boolean value.
 {}.Ast.FindAll.OverloadDefinitions
 ```
 The predicate is a logic statement which tests the value of each node in the tree. An assertion about the state of a thing.
+
+---
 
 # Writing a predicate
 
@@ -212,6 +230,8 @@ $predicate = {
 )
 ```
 
+---
+
 # Using Find
 
 Find returns the first match.
@@ -233,6 +253,8 @@ $predicate = {
 )
 ```
 
+---
+
 # Using FindAll
 
 FindAll returns all matches.
@@ -253,6 +275,8 @@ $predicate = {
     $true
 )
 ```
+
+---
 
 # Search scope
 
@@ -307,6 +331,8 @@ $predicate = { param ( $ast ) $ast -is [CommandAst] }
     $false
 )
 ```
+
+---
 
 # Implementing a search for single character variables
 
@@ -373,6 +399,8 @@ $predicate = {
 $script.Ast.FindAll($predicate, $true)
 ```
 
+---
+
 # PS Script Analyzer
 
 PS script analyzer allows rules to be defined either based on the AST, or on Tokens.
@@ -425,6 +453,8 @@ function MyRule {
 Get-ScriptAnalyzerRule -CustomRulePath Rules.psm1
 ```
 
+---
+
 # Building rules
 
 Script Analyzer rules should return one or more instances of:
@@ -449,6 +479,8 @@ AST types can be considered to be hierarchical. In a module file the following s
                         - CommandAst
 
 If an error is caused by a CommandAst and is to be flagged for a function, the rule should accept FunctionDefinitionAst.
+
+---
 
 # A simple rule
 
@@ -479,6 +511,9 @@ function StopUsingWriteHost {
 }
 '@ | Set-Content Rules.psm1
 ```
+
+---
+
 # Testing the rule
 
 ```powershell
@@ -493,6 +528,8 @@ Import-Module PSScriptAnalyzer
 
 Invoke-ScriptAnalyzer -ScriptDefinition $script -CustomRulePath .\Rules.psm1
 ```
+
+---
 
 # Building token based rules
 
