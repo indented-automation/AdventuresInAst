@@ -4,10 +4,30 @@
     <title>Adventures in AST</title>
     <meta charset="utf-8">
     <style>
-      body { font-family: 'sans-serif'; }
+      body { 
+        font-family: 'sans-serif';
+        font-size: medium;
+      }
       h1, h2, h3 {
         font-family: 'sans-serif';
         font-weight: normal;
+        font-weight: 400;
+        margin-bottom: 0;
+      }
+      .inverse {
+        background: #272822;
+        color: #777872;
+        text-shadow: 0 0 20px #333;
+      }
+      .inverse h1, .inverse h2 {
+        color: #f3f3f3;
+        line-height: 0.8em;
+      }
+      .footnote {
+        position: absolute;
+        font-size: small;
+        bottom: 3em;
+        right: 3em;
       }
       .remark-code, .remark-inline-code { font-family: 'monospace'; }
     </style>
@@ -15,9 +35,13 @@
   <body>
     <textarea id="source">
 
-class: center, middle
+class: center, middle, inverse
 
 # Adventures in AST
+
+.footnote[
+  created with [remark](http://github.com/gnab/remark)
+]
 
 ---
 
@@ -48,7 +72,7 @@ PowerShell providers two different classes for analysing source code.
 
 All executed elements of the source code which are considered programming structures.
 
-Comments and white space are not included. End of line continuation characters (`) are not included.
+Comments and white space are not included. End of line continuation characters are not included.
 
 ---
 
@@ -61,6 +85,11 @@ $scriptBlock = {
 }
 $scriptBlock.Ast
 ```
+
+---
+
+# AST from a string
+
 Strings can be parsed into AST using the ParseInput static method.
 ```powershell
 $script = "Write-Host 'Hello world'"
@@ -72,6 +101,11 @@ $errors = @()
     [Ref]$errors
 )
 ```
+
+---
+
+# AST from a file
+
 Files can be parsed into AST using the ParseFile static method.
 ```powershell
 Set-Content -Path script.ps1 -Value "Write-Host 'Hello world'"
@@ -84,6 +118,11 @@ $errors = @()
     [Ref]$errors
 )
 ```
+
+---
+
+# ParseInput: fileName argument
+
 ParseInput has a second overload that accepts both a file name and a string representing the script. The string is used as content, the file name is added to Extent information (and is not read).
 ```powershell
 $script = "Write-Host 'Hello world'"
@@ -107,12 +146,20 @@ The file path does not need to exist.
 # Getting at comments
 
 Comments are available by tokenizing a script.
+
+Using the script below:
+
 ```powershell
 $script = "
    # This is a comment
    Write-Host 'Hello world'
 "
 ```
+
+---
+
+# With PSParser
+
 PSParser can tokenize a script.
 ```powershell
 $errors = @()
@@ -124,7 +171,11 @@ $tokens[1]
 ```
 Tokens are of type System.Management.Automation.PSToken.
 
-Language.Parser can tokinize a script.
+---
+
+# With Language.Parser
+
+Language.Parser can tokenize a script.
 ```powershell
 $errors = @()
 $tokens = @()
@@ -135,13 +186,16 @@ $tokens = @()
 )
 $tokens[1]
 ```
-Tokens are of type System.Management.Automation.Language.Token. Position information found as properties of PSToken are part of the Extent property.
+Tokens are of type System.Management.Automation.Language.Token.
+
+The Extent property holds position information.
 
 ---
 
-# Uses of tokenize
+# Syntax testing with ParseInput
 
-Tokenize can be used to perform a syntax test.
+A basic syntax test can be performed by exploring errors.
+
 ```powershell
 $script = '
     if ($value -eq $true)) {
@@ -280,12 +334,12 @@ $predicate = {
 
 # Search scope
 
-The boolean value is used to search nested script blocks.
+The boolean value is used indicate a search should include nested script blocks.
+
+When false, the predicate will find one Write-Host command.
 
 ```powershell
-using namespace System.Management.Automation.Language
-
-$predicate = { param ( $ast ) $ast -is [CommandAst] }
+$predicate = { param ( $ast ) $ast -is [System.Management.Automation.Language.CommandAst] }
 
 {
     Write-Host 'Hello world'
@@ -298,16 +352,23 @@ $predicate = { param ( $ast ) $ast -is [CommandAst] }
     $false
 )
 ```
+
+---
+
+# What is a nested script block
+
 A nested script block will include any passed as arguments. Including arguments for:
 
  - ForEach-Object
  - Where-Object
  - Invoke-Command
 
-```powershell
-using namespace System.Management.Automation.Language
+---
 
-$predicate = { param ( $ast ) $ast -is [CommandAst] }
+# Nested script block with ForEach-Object
+
+```powershell
+$predicate = { param ( $ast ) $ast -is [System.Management.Automation.Language.CommandAst] }
 {
     1..10 | ForEach-Object {
         Write-Host 'Hello world'
@@ -317,11 +378,14 @@ $predicate = { param ( $ast ) $ast -is [CommandAst] }
     $false
 )
 ```
+
+---
+
+# Language keywords
+
 The body of if, foreach, while, and other language keywords are not nested script blocks.
 ```powershell
-using namespace System.Management.Automation.Language
-
-$predicate = { param ( $ast ) $ast -is [CommandAst] }
+$predicate = { param ( $ast ) $ast -is [System.Management.Automation.Language.CommandAst] }
 {
     foreach ($i in 1..10) {
         Write-Host 'Hello world'
@@ -338,64 +402,59 @@ $predicate = { param ( $ast ) $ast -is [CommandAst] }
 
 Variables named after a single character might be considered a bad practice.
 
-Finding the AST type:
+To create the predicate the problem can be explored.
+
 ```powershell
 { $a = 'something' }.Ast.EndBlock.Statements[0].GetType()
 ```
 
-Creating the search.
+---
+
+# Creating the search
 
 ```powershell
-using namespace System.Management.Automation.Language
-
 $script = {
     $a = Get-Something
     foreach ($x in $a) {
         Set-Something
     }
-
     for ($i = 0; $i -lt 10; $i += 2) {
         $i
     }
 }
-
 $predicate = {
     param ( $ast )
 
-    $ast -is [AssignmentStatementAst] -and
+    $ast -is [System.Management.Automation.Language.AssignmentStatementAst] -and
     $ast.Left.VariablePath.UserPath.Length -eq 1
 }
-
 $script.Ast.FindAll($predicate, $true)
 ```
 
-Allowing counters.
+---
+
+# Allowing counters
 
 ```powershell
-using namespace System.Management.Automation.Language
-
 $script = {
     $a = Get-Something
     foreach ($x in $a) {
         Set-Something
     }
-
     for ($i = 0; $i -lt 10; $i += 2) {
         $i
     }
 }
-
 $predicate = {
     param ( $ast )
 
-    $ast -is [AssignmentStatementAst] -and
+    $ast -is [System.Management.Automation.Language.AssignmentStatementAst] -and
     $ast.Left.VariablePath.UserPath.Length -eq 1 -and
     -not (
-        $ast.Right -is [CommandExpressionAst] -and
+        $ast.Right -is [System.Management.Automation.Language.CommandExpressionAst] -and
         $ast.Right.Expression.StaticType.Name -match '^U?Int'
     )
 }
-
 $script.Ast.FindAll($predicate, $true)
 ```
 
@@ -411,6 +470,10 @@ PS script analyzer has some example community rules:
 
 [github/powershell/ScriptAnalyzer: CommunityAnalyzerRules.psm1](https://github.com/PowerShell/PSScriptAnalyzer/tree/e22d1b47c1fc46837296d29983e8a902c4c3bdeb/Tests/Engine/CommunityAnalyzerRules)
 
+---
+
+# Rule discovery
+
 Script analyzer will consider a function to be a rule when:
 
  - The function is exported by a module
@@ -421,8 +484,12 @@ Script analyzer will consider a function to be a rule when:
 
 If the parameter name ends with token, Script Analyzer will pass the script as an array of tokens (System.Management.Automation.Language.Token).
 
+---
+
+# Parameter discovery
+
 From [github/powershell/ScriptAnalyzer: ScriptAnalyzer.cs](https://github.com/PowerShell/PSScriptAnalyzer/blob/e22d1b47c1fc46837296d29983e8a902c4c3bdeb/Engine/ScriptAnalyzer.cs#L1036)
-```csharp
+```cs
 try
 {
     param = funcInfo.Parameters.Values.First<ParameterMetadata>(item => 
@@ -434,7 +501,12 @@ catch
 {
 }
 ```
-If the function has help, the descripton is read in.
+
+---
+
+# Rule description
+
+If the function has help, the descripton is read.
 
 An empty rule.
 ```powershell
@@ -463,6 +535,8 @@ Script Analyzer rules should return one or more instances of:
 
 When creating a diagnostic record, RuleName and Message must be set. Extent should be set.
 
+---
+
 # Building AST based rules
 
 The AST type a rule accepts should represent the level a diagnostic record should be generated.
@@ -488,9 +562,6 @@ Create a diagnostic message for each instance of Write-Host.
 
 ```powershell
 @'
-using namespace System.Management.Automation.Language
-using namespace Microsoft.Windows.Powershell.ScriptAnalyzer.Generic
-
 function StopUsingWriteHost {
     <#
     .DESCRIPTION
@@ -498,11 +569,11 @@ function StopUsingWriteHost {
     #>
 
     param (
-        [CommandAst]$someAst
+        [System.Management.Automation.Language.CommandAst]$someAst
     )
 
     if ($someAst.GetCommandName() -eq 'Write-Host') {
-        [DiagnosticRecord]@{
+        [Microsoft.Windows.Powershell.ScriptAnalyzer.Generic.DiagnosticRecord]@{
             RuleName             = $myinvocation.InvocationName
             Message              = 'Please do not use Write-Host'
             Extent               = $someAst.Extent
@@ -514,14 +585,14 @@ function StopUsingWriteHost {
 
 ---
 
-# Testing the rule
+# Testing the AST based rule
 
 ```powershell
 $script = '
-Write-Host "Oh the grand old duke of york"
-Write-Host "He had ten thousand men"
-Write-Host "He marched them up to the top of the hill"
-Write-Host "And he marched them down again"
+Write-Host "Oh, the grand old duke of york;"
+Write-Host "He had ten thousand men;"
+Write-Host "He marched them up to the top of the hill,"
+Write-Host "and he marched them down again."
 '
 
 Import-Module PSScriptAnalyzer
@@ -533,6 +604,44 @@ Invoke-ScriptAnalyzer -ScriptDefinition $script -CustomRulePath .\Rules.psm1
 
 # Building token based rules
 
+```powershell
+@'
+function NoMoreTicks {
+    <#
+    .DESCRIPTION
+        Do not use tick to continue lines.
+    #>
+
+    param (
+        [System.Management.Automation.Language.Token[]]$token
+    )
+
+    $token | Where-Object Kind -eq 'LineContinuation' | ForEach-Object {
+        [Microsoft.Windows.Powershell.ScriptAnalyzer.Generic.DiagnosticRecord]@{
+            RuleName             = $myinvocation.InvocationName
+            Message              = 'Do not use tick for line continuation'
+            Extent               = $_.Extent
+        }
+    }
+}
+'@ | Set-Content Rules.psm1
+```
+
+---
+
+# Testing the token based rule
+
+```powershell
+$script = @'
+Get-Process | Select-Object `
+    Name, `
+    ProcessId
+'@
+
+Import-Module PSScriptAnalyzer
+
+Invoke-ScriptAnalyzer -ScriptDefinition $script -CustomRulePath .\Rules.psm1
+```
     </textarea>
     <script src="remark.min.js">
     </script>
